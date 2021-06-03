@@ -2,12 +2,15 @@
 
 ##Setup
 `bundle`
+`database`
+
 
 ##Metabase
 
 Fix me: Persist DB - Mounting a mapped file storage volume
 `docker run -d -p 3000:3000 --name metabase metabase/metabase`
 
+http://192.168.0.3:3000/
 
 ##Database
 

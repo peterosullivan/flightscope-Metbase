@@ -1,47 +1,43 @@
 #!/home/peter/.rbenv/shims/ruby
 require 'csv'
-require 'active_record'
-require 'mysql2'
+require './models.rb'
+require 'pathname'
+require 'pry'
 
-ActiveRecord::Base.establish_connection(
-  adapter:  'mysql2',
-  host:     '192.168.0.3',
-  database: 'mevo',
-  username: 'root',
-  password: 'rata'
-)
-
-class Session < ActiveRecord::Base
-  has_many :session
-end
-
-class Club < ActiveRecord::Base
-  has_many :shots
-end
-
-class Shot < ActiveRecord::Base
-  belongs_to :club
-  belongs_to :session
-end
-
-
-puts Club.all
-some_class = Club.new
+Shot.destroy_all
 
 fields_map = {
-  "Ball Speed (km/h)": "ball_speed",
-  "Club Speed (km/h)": "club_speed",
-  "Smash": "smash",
-  "Carry Distance (m)": "carry_distance",
-  "Launch Angle V (°)": "launch_angle",
-  "Spin (rpm)": "spin",
-  "Height (m)": "height",
-  "Time (s)": "time",
-  "Club": "club",
-}
+   ball_speed: "Ball Speed (km/h)",
+   club_speed: "Club Speed (km/h)",
+   smash: "Smash",
+   carry: "Carry Distance (m)",
+   launch_angle: "Launch Angle V (°)",
+   spin: "Spin (rpm)",
+   height: "Height (m)",
+   flight_time: "Time (s)",
+   club: "Club"}
 
-puts fields_map
+Dir.glob('data/*.csv').each do| f |
+  filenmame = File.basename(f, ".csv")
+  session = Session.find_or_create_by(name: filenmame) do |session|
+    session.occured_at = File.mtime(f)
+  end
 
-CSV.foreach("stats.csv", headers: true) do |row|
-  #puts row
+  CSV.foreach(f, headers: true) do |row|
+    club_str = row[fields_map[:club]]
+    return unless club_str
+    club = Club.find_or_create_by(name: club_str)
+    values = fields_map.transform_values{ |v| row[v] }
+    values = values.merge({club_id: club.id, session_id: session.id})
+    values.delete(:club)
+    begin
+      Shot.create(values)
+    rescue
+      binding.pry
+    end
+  end
 end
+
+puts Session.all
+puts Club.all
+puts Shot.all
